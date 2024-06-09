@@ -1,8 +1,5 @@
 import { PropsWithChildren } from 'react';
 
-type Handler = (message: Message) => void;
-const handlers = new Map<string, Handler[]>();
-
 type Message =
   | {
       type: 'css-selector-generated';
@@ -12,6 +9,9 @@ type Message =
       type: 'start-css-selector-generation';
       tabId: number;
     };
+
+type Handler<T> = (variant: T) => void;
+const handlers = new Map<string, Handler<unknown>[]>();
 
 export const MessageListener = ({ children }: PropsWithChildren) => {
   chrome.runtime.onMessage.addListener(function (request: Message, _, sendResponse) {
@@ -25,19 +25,22 @@ export const MessageListener = ({ children }: PropsWithChildren) => {
   return children;
 };
 
-function getHandlers(type: string) {
-  return handlers.get(type) || ([] as Handler[]);
+function getHandlers<T extends string>(type: T) {
+  return handlers.get(type) || ([] as Handler<Extract<Message, { type: T }>>[]);
 }
 
-export const useMessageListener = (type: string, handler: Handler) => {
+export const useMessageListener = function <T extends string>(
+  type: T,
+  handler: Handler<Extract<Message, { type: T }>>,
+) {
   const handlersForType = getHandlers(type);
-  handlers.set(type, [...handlersForType, handler]);
+  handlers.set(type, [...handlersForType, handler] as Handler<unknown>[]);
 
   return () => {
     const handlersForType = getHandlers(type);
     handlers.set(
       type,
-      handlersForType.filter(h => h !== handler),
+      handlersForType.filter(h => (h as Handler<Extract<Message, { type: T }>>) !== handler) as Handler<unknown>[],
     );
   };
 };
