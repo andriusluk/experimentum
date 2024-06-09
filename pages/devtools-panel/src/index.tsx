@@ -1,6 +1,8 @@
-import { createRoot } from 'react-dom/client';
-import '@src/index.css';
 import Panel from '@src/Panel';
+import '@src/index.css';
+import { createRoot } from 'react-dom/client';
+import { MessageListener } from './MessagingContext';
+import { TabListener } from './TabContext';
 
 function init() {
   const appContainer = document.querySelector('#app-container');
@@ -9,7 +11,13 @@ function init() {
   }
   const root = createRoot(appContainer);
 
-  root.render(<Panel />);
+  root.render(
+    <TabListener>
+      <MessageListener>
+        <Panel />
+      </MessageListener>
+    </TabListener>,
+  );
 }
 
 init();

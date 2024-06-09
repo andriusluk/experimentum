@@ -1,10 +1,17 @@
-import '@src/Panel.css';
 import { useStorageSuspense, withErrorBoundary, withSuspense } from '@chrome-extension-boilerplate/shared';
 import { exampleThemeStorage } from '@chrome-extension-boilerplate/storage';
-import { ComponentPropsWithoutRef } from 'react';
+import '@src/Panel.css';
+import { ComponentPropsWithoutRef, useCallback, useState } from 'react';
+import { sendMessage, useMessageListener } from './MessagingContext';
+import { useTabId } from './TabContext';
 
 const Panel = () => {
   const theme = useStorageSuspense(exampleThemeStorage);
+  const [selector, setSelector] = useState<string | null>(null);
+
+  useMessageListener('css-selector-generated', ({ selector }) => {
+    setSelector(selector);
+  });
 
   return (
     <div
@@ -17,6 +24,11 @@ const Panel = () => {
         <p>
           Edit <code>pages/devtools-panel/src/Panel.tsx</code> and save to reload.
         </p>
+        {selector && (
+          <p>
+            Selector: <code>{selector}</code>
+          </p>
+        )}
         <a
           className="App-link"
           href="https://reactjs.org"
@@ -33,6 +45,16 @@ const Panel = () => {
 
 const ToggleButton = (props: ComponentPropsWithoutRef<'button'>) => {
   const theme = useStorageSuspense(exampleThemeStorage);
+  const tabId = useTabId();
+
+  const toggleTheme = useCallback(async () => {
+    exampleThemeStorage.toggle();
+    if (!tabId) {
+      return;
+    }
+    sendMessage(tabId, { type: 'start-css-selector-generation', tabId });
+  }, [tabId]);
+
   return (
     <button
       className={
@@ -41,7 +63,7 @@ const ToggleButton = (props: ComponentPropsWithoutRef<'button'>) => {
         'font-bold mt-4 py-1 px-4 rounded shadow hover:scale-105 ' +
         (theme === 'light' ? 'bg-white text-black' : 'bg-black text-white')
       }
-      onClick={exampleThemeStorage.toggle}>
+      onClick={toggleTheme}>
       {props.children}
     </button>
   );
